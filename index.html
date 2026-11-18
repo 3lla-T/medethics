@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>MedEthics</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Patrick+Hand&display=swap">
+<style>
+/* Layout: one full-window sheet of paper; each step is a centered column of hand-boxed text under a pencil line drawing */
+:root{
+  --paper:#f7f5ef;
+  --ink:#1c1b19;
+  --ink-soft:#5b5850;
+  --wash:rgba(28,27,25,.07);
+  --veil:rgba(247,245,239,.80);
+  --hand:"Patrick Hand","Comic Sans MS","Segoe Print",cursive;
+  --head:"Kalam","Patrick Hand","Comic Sans MS","Segoe Print",cursive;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--hand);font-size:clamp(18px,2.1vw,21px);line-height:1.45;overflow:hidden}
+#app{height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+
+.screen{max-width:1000px;min-height:100%;margin:0 auto;display:flex;flex-direction:column;gap:22px;
+  padding-block:84px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.screen.center{justify-content:center;align-items:center}
+.enter{animation:enter .35s ease-out}
+@keyframes enter{from{opacity:.3;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* hand-drawn boxes: an SVG outline is drawn into every .box by script */
+.box{position:relative;padding:18px 22px}
+.box-line{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.box-line path{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.box:focus-within>.box-line path{stroke-width:2.4}
+
+.btn{font:inherit;font-family:var(--head);font-weight:700;font-size:21px;color:var(--ink);background:transparent;border:0;border-radius:0;padding:10px 30px;cursor:pointer}
+.btn::after{content:"";position:absolute;inset:5px;background:var(--wash);opacity:0;transition:opacity .15s}
+.btn:hover::after,.btn.on::after{opacity:1}
+.btn:active{transform:translate(1px,1px)}
+:focus-visible{outline:2px dashed var(--ink);outline-offset:4px}
+.actions{display:flex;justify-content:center;gap:16px}
+
+.scene .art{width:100%;max-width:840px;margin:0 auto}
+.fig{display:block;width:100%;height:auto}
+.scene .fig{max-height:46vh}
+.fig .ink path,.fig .ink circle,.fig .ink ellipse{stroke:var(--ink);stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.fig .ink .p{fill:var(--paper)}
+.fig .ink .k{fill:var(--ink)}
+
+.text{width:100%;max-width:46rem;margin:0 auto}
+.text p{margin:0}
+.ready{display:flex;flex-direction:column;gap:18px;align-items:center;text-align:center;max-width:30rem;padding:28px}
+
+.term{font:inherit;color:inherit;background:none;border:0;padding:0;border-bottom:2px dotted var(--ink);cursor:help}
+.term:hover{background:var(--wash)}
+
+.head h2{font-family:var(--head);font-weight:700;font-size:clamp(26px,4vw,34px);line-height:1.15;margin:0 0 6px;text-wrap:balance}
+.head p{margin:0}
+
+.with-doc{display:grid;grid-template-columns:170px minmax(0,1fr);gap:18px;align-items:start}
+.doc-side{position:sticky;top:12px}
+.work{display:flex;flex-direction:column;gap:18px;min-width:0}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.reveal{display:flex;flex-direction:column;gap:18px}
+
+.field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.field-label{font-family:var(--head);font-size:19px;line-height:1.3}
+.field-label b{font-weight:700}
+.mine{font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:15px}
+.field textarea{width:100%;min-height:150px;border:0;background:transparent;font:inherit;color:inherit;line-height:1.45;resize:vertical;padding:0}
+.field textarea:focus-visible{outline:none}
+.answer p{margin:0}
+
+.sorter{display:flex;flex-direction:column;gap:18px}
+.chips{display:flex;flex-wrap:wrap;gap:12px;min-height:64px;align-content:flex-start;padding-top:6px}
+.chip{padding:8px 18px;background:var(--paper);font-family:var(--head);font-size:19px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.chip.placeholder{opacity:.3}
+.sorter[data-locked] .chip,.answer .chip{cursor:default}
+.zone.over{background:var(--wash)}
+.zone .chips{min-height:120px}
+@media (min-width:641px) and (max-width:860px){.zone .chips{min-height:210px}}
+.ghost{position:fixed;z-index:80;margin:0;pointer-events:none;cursor:grabbing}
+
+.overlay{position:fixed;inset:0;z-index:50;display:grid;place-items:center;overflow-y:auto;background:var(--veil);
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);padding-block:72px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.card{background:var(--paper);width:100%;max-width:560px;padding:30px 32px;display:flex;flex-direction:column;gap:16px}
+.card p{margin:0}
+.card .big{font-family:var(--head);font-size:24px;font-weight:700;line-height:1.3}
+.card h3{font-family:var(--head);font-size:20px;margin:6px 0 0}
+.cites{margin:0;padding-left:1.1em;font-size:17px;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:6px}
+.cites a{color:var(--ink)}
+.note{font-size:17px;color:var(--ink-soft)}
+
+.mega{position:fixed;z-index:70;top:calc(12px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));padding:8px 12px;background:var(--paper);line-height:0}
+.back{position:fixed;z-index:70;top:calc(12px + env(safe-area-inset-top,0px));left:calc(max(12px,env(safe-area-inset-left,0px)) + 74px);padding:8px 12px;background:var(--paper);line-height:0}
+.reason{justify-content:flex-start}
+.say{display:inline-flex;align-items:center;gap:10px;padding:8px 18px;font-size:19px}
+.say svg.icon{width:32px;height:29px;flex:none}
+.mega svg.icon,.back svg.icon{width:38px;height:34px}
+.say svg.icon path,.mega svg.icon path,.back svg.icon path{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+.pop{position:fixed;z-index:85;background:var(--paper);width:max-content;max-width:min(320px,calc(100vw - 32px));padding:14px 18px;font-size:18px}
+.pop b{font-family:var(--head)}
+.toast{position:fixed;z-index:90;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--paper);padding:10px 18px;font-size:18px;width:max-content;max-width:calc(100vw - 32px)}
+
+@media (max-width:760px){.trio{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  .pair{grid-template-columns:minmax(0,1fr)}
+  .with-doc{grid-template-columns:72px minmax(0,1fr);gap:10px}
+  .card{padding:24px 22px}
+}
+@media (prefers-reduced-motion:reduce){.enter{animation:none}.btn::after{transition:none}}
+</style>
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<button type="button" class="btn box mega" id="mega" aria-label="Play narration for this section">
+  <svg class="icon" viewBox="0 0 40 36" aria-hidden="true">
+    <path d="M5 13.5 L5 22.5 L12 22.5 L26 30.5 L26 5.5 L12 13.5 Z"/>
+    <path d="M10 22.5 L12.5 30 L16.5 30 L15 23.5"/>
+    <path d="M30 13.5 Q33 18 30 22.5"/>
+    <path d="M33.5 9.5 Q39 18 33.5 26.5"/>
+  </svg>
+</button>
+<button type="button" class="btn box back" id="back" aria-label="Go back to the previous section" hidden>
+  <svg class="icon" viewBox="0 0 40 36" aria-hidden="true">
+    <path d="M33 18 Q20 17.5 8 18"/>
+    <path d="M17 8 L7 18 L17 28"/>
+  </svg>
+</button>
+<main id="app"></main>
+<div class="box pop" id="pop" role="dialog" aria-live="polite" hidden><div id="pop-body"></div></div>
+<div class="box toast" id="toast" role="status" hidden><span id="toast-body"></span></div>
+
+<script>
+/* ---------- Audio: add a file path for each section here (e.g. 'audio/scene-1.mp3') ---------- */
+const AUDIO = Object.fromEntries([
+  'welcome',
+  'scene-1', 'scene-2', 'scene-3', 'scene-4', 'scene-5', 'scene-6', 'scene-7', 'scene-8', 'scene-9', 'ready',
+  'right-vs-right', 'stakeholders', 'hippocratic-oath', 'resolution-principles', 'stop-and-think', 'resolution',
+  'finish',
+  /* "My reasoning" audio, played from the button that appears after Submit */
+  'right-vs-right-ella', 'stakeholders-ella', 'hippocratic-oath-ella', 'resolution-principles-ella', 'resolution-ella'
+].map(k => [k, `audio/${k}.m4a`]));
+const MEGA_ICON = `<svg class="icon" viewBox="0 0 40 36" aria-hidden="true"><path d="M5 13.5 L5 22.5 L12 22.5 L26 30.5 L26 5.5 L12 13.5 Z"/><path d="M10 22.5 L12.5 30 L16.5 30 L15 23.5"/><path d="M30 13.5 Q33 18 30 22.5"/><path d="M33.5 9.5 Q39 18 33.5 26.5"/></svg>`;
+const reasonRow = key => `<div class="actions reason"><button type="button" class="btn box say" data-audio="${key}-ella">${MEGA_ICON}<span>Hear my reasoning</span></button></div>`;
+
+/* ---------- Glossary ---------- */
+const GLOSS = {
+  cyanotic: ['Cyanotic', 'Bluish tinting of the skin, caused by a shortage of oxygen in the blood'],
+  apgar: ['Apgar score', 'Scoring system to assess condition of newborns after birth (0-10 scale)'],
+  nicu: ['NICU', 'Neonatal intensive care unit'],
+  hypoxemia: ['Hypoxemia', 'Condition caused by severely low blood oxygen']
+};
+const T = (k, label) => `<button type="button" class="term" data-term="${k}">${label}</button>`;
+
+/* ---------- Hand-drawn box outlines ---------- */
+const NS = 'http://www.w3.org/2000/svg';
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+let seedCounter = 1;
+function sketchRect(w, h, r){
+  const j = a => (r() - .5) * 2 * a, f = n => n.toFixed(1), i = 3;
+  const line = (x1, y1, x2, y2) => {
+    const bow = Math.min(2.2, Math.hypot(x2 - x1, y2 - y1) * .006);
+    return `M${f(x1 + j(1.2))} ${f(y1 + j(1.2))} Q${f((x1 + x2) / 2 + j(bow))} ${f((y1 + y2) / 2 + j(bow))} ${f(x2 + j(1.2))} ${f(y2 + j(1.2))}`;
+  };
+  let d = '';
+  for (let pass = 0; pass < 2; pass++){
+    const o = pass ? 1.4 : .4;
+    d += line(i - 2 + j(1), i + j(o), w - i + 2 + j(1), i + j(o));
+    d += line(w - i + j(o), i - 2 + j(1), w - i + j(o), h - i + 2 + j(1));
+    d += line(w - i + 2 + j(1), h - i + j(o), i - 2 + j(1), h - i + j(o));
+    d += line(i + j(o), h - i + 2 + j(1), i + j(o), i - 2 + j(1));
+  }
+  return d;
+}
+function drawBox(el){
+  const w = el.offsetWidth, h = el.offsetHeight;
+  if (!w || !h || !el._ln) return;
+  el._ln.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  el._ln.innerHTML = `<path d="${sketchRect(w, h, rng(el._seed))}"/>`;
+}
+const ro = new ResizeObserver(entries => entries.forEach(en => drawBox(en.target)));
+function decorate(root){
+  const els = root.matches?.('.box') ? [root, ...root.querySelectorAll('.box')] : root.querySelectorAll('.box');
+  els.forEach(el => {
+    if (el._ln) return;
+    const s = document.createElementNS(NS, 'svg');
+    s.setAttribute('class', 'box-line'); s.setAttribute('aria-hidden', 'true');
+    el.prepend(s); el._ln = s; el._seed = (seedCounter++ * 2654435761) >>> 0;
+    ro.observe(el); drawBox(el);
+  });
+}
+
+/* ---------- Line-drawing figures ---------- */
+const P = (d, c = '') => `<path d="${d}"${c ? ` class="${c}"` : ''}/>`;
+const C = (x, y, r, c = '') => `<circle cx="${x}" cy="${y}" r="${r}"${c ? ` class="${c}"` : ''}/>`;
+const E = (x, y, rx, ry, c = '') => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"${c ? ` class="${c}"` : ''}/>`;
+
+const ARMS = {
+  down:  [[-22,-138,-32,-110,-35,-82],[22,-138,32,-110,35,-82]],
+  hold:  [[-22,-138,-32,-112,-6,-106],[22,-138,32,-112,6,-106]],
+  point: [[-22,-138,-32,-110,-35,-82],[22,-138,48,-134,76,-138]],
+  gesture:[[-22,-138,-32,-110,-35,-82],[22,-138,42,-112,58,-130]],
+  both:  [[-22,-138,-42,-114,-56,-128],[22,-138,42,-114,56,-128]],
+  up:    [[-22,-138,-44,-150,-42,-182],[22,-138,44,-150,42,-182]],
+  belly: [[-22,-138,-32,-110,-35,-82],[22,-138,36,-112,24,-100]],
+  reach: [[-22,-138,-32,-110,-35,-82],[22,-138,46,-118,70,-106]]
+};
+const BROWS_WORRY = 'M -14 -182 L -5 -186 M 5 -186 L 14 -182';
+const FACES = {
+  happy: P('M -9 -165 Q 0 -156 9 -165'),
+  neutral: P('M -6 -162 L 6 -162'),
+  worried: P(BROWS_WORRY) + P('M -7 -161 Q -3.5 -164 0 -161 Q 3.5 -158 7 -161'),
+  concerned: P(BROWS_WORRY) + P('M -6 -162 L 6 -162'),
+  angry: P('M -14 -187 L -4 -182 M 4 -182 L 14 -187') + E(0, -161, 6, 5, 'k')
+};
+function baby(cx, cy){
+  return E(cx, cy, 19, 11, 'p') + P(`M ${cx-6} ${cy-10} Q ${cx+1} ${cy} ${cx-4} ${cy+10}`) +
+    C(cx - 17, cy - 4, 8, 'p') + P(`M ${cx-21} ${cy-5} q 1.5 1.5 3 0 M ${cx-15} ${cy-5} q 1.5 1.5 3 0`);
+}
+function person(o){
+  const { x, y = 330, s = 1, kind = 'woman', mood = 'neutral', arms = 'down', pregnant = false, tears = false, flip = false } = o;
+  let g = '';
+  if (kind === 'woman') g += P('M -14 -146 Q -31 -142 -29 -154 Q -32 -178 -22 -192 Q 0 -208 22 -192 Q 32 -178 29 -154 Q 31 -142 14 -146', 'p');
+  if (kind === 'doctor') g += C(0, -199, 9, 'p');
+  if (kind === 'man') g += P('M -28 -80 L -26 -1 L -6 -1 L 0 -52 L 6 -1 L 26 -1 L 28 -80', 'p');
+  else g += P('M -12 -58 L -13 -2 L -22 -1 M 12 -58 L 13 -2 L 22 -1');
+  if (kind === 'man') g += P('M -24 -142 Q 0 -148 24 -142 L 30 -78 Q 0 -74 -30 -78 Z', 'p') + P('M -7 -144 L 0 -134 L 7 -144');
+  if (kind === 'woman') g += P(pregnant
+    ? 'M -22 -142 Q 0 -148 22 -142 Q 25 -124 28 -118 Q 54 -100 42 -72 L 40 -56 Q 0 -50 -38 -56 Z'
+    : 'M -22 -142 Q 0 -148 22 -142 L 38 -56 Q 0 -50 -38 -56 Z', 'p');
+  if (kind === 'doctor') g += P('M -24 -142 Q 0 -148 24 -142 L 33 -56 Q 0 -52 -33 -56 Z', 'p') + P('M -10 -144 L 0 -122 L 10 -144 M 0 -122 L 0 -55 M 13 -94 L 25 -94');
+  g += P('M 0 -150 L 0 -143') + C(0, -172, 22, 'p');
+  if (kind === 'man') g += P('M -22 -176 Q -22 -197 0 -196 Q 22 -197 22 -176 Q 14 -186 2 -184 Q -10 -190 -22 -176 Z', 'p');
+  if (kind === 'woman') g += P('M -21 -180 Q -6 -178 6 -193 Q 12 -183 21 -180');
+  if (kind === 'doctor') g += P('M -22 -170 Q -25 -196 0 -195 Q 25 -196 22 -170 Q 18 -186 0 -186 Q -18 -186 -22 -170 Z', 'p');
+  g += C(-8, -175, 2.2, 'k') + C(8, -175, 2.2, 'k') + FACES[mood];
+  if (tears) g += P('M -11 -170 q -3 6 0 8 q 3 -2 0 -8 M 11 -170 q -3 6 0 8 q 3 -2 0 -8', 'p');
+  if (kind === 'doctor') g += P('M -12 -143 C -20 -116 -3 -114 -3 -101 M 12 -143 C 20 -116 -3 -114 -3 -101') + C(-3, -96, 4.5, 'p');
+  if (arms === 'hold') g += baby(2, -112);
+  for (const a of ARMS[arms]) g += P(`M ${a[0]} ${a[1]} Q ${a[2]} ${a[3]} ${a[4]} ${a[5]}`) + C(a[4], a[5], 3.6, 'p');
+  return `<g transform="translate(${x} ${y}) scale(${flip ? -s : s} ${s})">${g}</g>`;
+}
+function child(x, y, rot, s){
+  const g = P('M -8 -40 L -10 -2 M 8 -40 L 10 -2') + P('M -14 -82 Q 0 -86 14 -82 L 22 -40 Q 0 -36 -22 -40 Z', 'p') +
+    P('M -13 -79 Q -30 -76 -36 -94 M 13 -79 Q 30 -76 36 -94') + C(0, -104, 20, 'p') + P('M -2 -124 Q 2 -134 8 -128') +
+    C(-7, -107, 2, 'k') + C(7, -107, 2, 'k') + C(0, -96, 3.5, 'p');
+  return `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">${g}</g>`;
+}
+const art = (label, inner, vb = '0 0 800 350') =>
+  `<svg class="fig" viewBox="${vb}" role="img" aria-label="${label}"><g class="ink" filter="url(#wobble)">${inner}</g></svg>`;
+const GROUND = P('M 30 331 Q 220 327 400 331 T 770 330');
+const docArt = () => art('Dr. Hearth pointing toward the answer boxes',
+  P('M 10 319 Q 60 316 120 319') + person({ x: 64, y: 318, s: 1.35, kind: 'doctor', mood: 'happy', arms: 'point' }), '0 0 200 330');
+
+/* ---------- Scenario segments ---------- */
+const SCENES = [
+  { label: 'Jane and George',
+    text: 'This is Jane and her husband George.',
+    draw: () => GROUND + person({ x: 345, kind: 'woman', mood: 'happy' }) + person({ x: 455, kind: 'man', mood: 'happy' }) },
+  { label: 'Jane and George, happy, holding their new baby',
+    text: 'Jane and George had been trying for 4 years to have a baby. They were thrilled when Jane became pregnant with “miracle baby” Jasmine.',
+    draw: () => GROUND + person({ x: 345, kind: 'woman', mood: 'happy', arms: 'hold' }) + person({ x: 455, kind: 'man', mood: 'happy' }) },
+  { label: 'Jasmine falling down the stairs while her parents look on, worried',
+    text: `However, soon after her first birthday, Jasmine fell down the stairs of the family’s third-floor apartment and suffered serious head trauma. The injury, coupled with prolonged ${T('hypoxemia', 'hypoxemia')} following the fall, left Jasmine with severe mental and physical handicaps—she was unable to walk or speak coherently, suffered from seizures, and lost her vision. Jane and George coped with this sudden, devastating situation as best they could, but caring for Jasmine was a hardship. George, a bank teller, began to work extra shifts to help pay for medical bills. Jane quit her job to stay home with Jasmine.`,
+    draw: () => P('M 30 110 L 90 110 L 90 150 L 150 150 L 150 190 L 210 190 L 210 230 L 270 230 L 270 270 L 330 270 L 330 310 L 390 310 L 390 330') +
+      P('M 50 53 L 370 267 M 60 110 L 60 60 M 120 150 L 120 100 M 180 190 L 180 140 M 240 230 L 240 180 M 300 270 L 300 220 M 360 310 L 360 260') +
+      P('M 390 331 Q 580 327 770 330') +
+      child(178, 150, 110, .8) + P('M 136 122 Q 164 96 196 108 M 148 140 Q 174 120 204 128') +
+      person({ x: 560, kind: 'woman', mood: 'worried', arms: 'both' }) + person({ x: 670, kind: 'man', mood: 'worried', arms: 'both' }) },
+  { label: 'Jane, pregnant, and George standing beside her, both worried',
+    text: 'A year after Jasmine’s accident, Jane found out she was pregnant again. This time, Jane and George worried they wouldn’t be able to pay to raise another child, especially with Jasmine’s condition.',
+    draw: () => GROUND + person({ x: 340, kind: 'woman', mood: 'worried', arms: 'belly', pregnant: true }) + person({ x: 460, kind: 'man', mood: 'worried' }) },
+  { label: 'Jane and George standing with Dr. Hearth, who wears a lab coat and stethoscope',
+    text: 'Jane and George regularly visited OB-GYN Dr. Hearth. She oversaw Jane’s first pregnancy and understands the couple’s concerns.',
+    draw: () => GROUND + person({ x: 250, kind: 'woman', mood: 'neutral', arms: 'belly', pregnant: true }) + person({ x: 360, kind: 'man', mood: 'neutral' }) + person({ x: 540, kind: 'doctor', mood: 'happy' }) },
+  { label: 'A worried Dr. Hearth explaining the diagnosis to the parents',
+    text: '24 weeks into the pregnancy, Jane begins to experience premature contractions and is rushed to the hospital. At the hospital, it is discovered that Jane’s membranes have ruptured and that therapy would be ineffective. The only solution is to induce labor. However, during a lengthy discussion over the baby’s prognosis, Dr. Hearth warns that babies born at 24 weeks could face significant health challenges, many similar to those that baby Jasmine already experiences.',
+    draw: () => GROUND + person({ x: 230, kind: 'woman', mood: 'worried', arms: 'belly', pregnant: true }) + person({ x: 330, kind: 'man', mood: 'worried' }) + person({ x: 560, kind: 'doctor', mood: 'concerned', arms: 'gesture', flip: true }) },
+  { label: 'The parents explaining their wishes to Dr. Hearth',
+    text: 'The parents make the following decision: They only want the baby resuscitated at birth if it is born “alive and vigorous”.',
+    draw: () => GROUND + person({ x: 200, kind: 'woman', mood: 'neutral', arms: 'both', pregnant: true }) + person({ x: 300, kind: 'man', mood: 'neutral', arms: 'gesture' }) + person({ x: 580, kind: 'doctor', mood: 'neutral', flip: true }) +
+      P('M 430 48 C 490 47 523 68 522 92 C 521 118 488 136 430 136 L 392 136 L 352 162 L 366 132 C 350 124 338 110 338 92 C 339 66 372 48 430 48 Z', 'p') +
+      P('M 372 80 Q 392 74 412 80 T 452 80 T 490 80 M 372 98 Q 392 92 412 98 T 452 98 T 488 98 M 372 116 Q 390 110 408 116 T 444 116') },
+  { label: 'Dr. Hearth holding the newborn baby',
+    text: `Dr. Hearth oversees the birth of a 652-gram ${T('cyanotic', 'cyanotic')} boy with a weak, slow heartbeat and an extremely slow respiratory rate. His ${T('apgar', 'Apgar score')} at 1 minute is 4. While the doctor is mindful of the parents’ wishes, she also feels that it is morally wrong to let the baby die. She gives the baby a breathing tube and sends him to ${T('nicu', 'NICU')}.`,
+    draw: () => GROUND + person({ x: 400, kind: 'doctor', mood: 'concerned', arms: 'hold' }) },
+  { label: 'Left: the parents yelling at Dr. Hearth. Right: Dr. Hearth checking on the baby in his crib',
+    text: `The parents are distraught and enraged and, half crying, demand that the baby’s breathing tube be removed immediately. Dr. Hearth goes back to check on the baby and finds that his ${T('apgar', 'Apgar score')} has improved to a 6. While the baby’s reflexes are somewhat diminished, he seems to be doing as well as other infants delivered at 24 weeks.`,
+    draw: () => P('M 400 40 Q 403 190 399 340') + P('M 20 331 Q 200 327 380 330') + P('M 420 331 Q 600 327 780 330') +
+      person({ x: 80, s: .85, kind: 'man', mood: 'angry', arms: 'up' }) + person({ x: 175, s: .85, kind: 'woman', mood: 'angry', arms: 'both', tears: true }) +
+      person({ x: 320, s: .85, kind: 'doctor', mood: 'concerned', flip: true }) +
+      P('M 548 262 L 740 262 L 740 292 L 548 292 Z', 'p') + P('M 562 292 L 562 330 M 726 292 L 726 330') +
+      P('M 548 262 Q 550 196 644 194 Q 738 196 740 262') + baby(652, 250) + P('M 633 244 Q 614 218 600 207') +
+      person({ x: 480, s: .85, kind: 'doctor', mood: 'neutral', arms: 'reach' }) }
+];
+
+/* ---------- Analysis building blocks ---------- */
+const head = (title, prompt) => `<div class="box head"><h2>${title}</h2><p>${prompt}</p></div>`;
+const field = (id, label) => `<label class="box field" for="${id}"><span class="field-label">${label}</span><textarea id="${id}" rows="6"></textarea></label>`;
+const answer = (label, text) => `<div class="box field answer"><span class="field-label"><span class="mine">My answer</span>${label ? ' · ' + label : ''}</span><p>${text}</p></div>`;
+const submitRow = `<div class="actions"><button type="button" class="btn box" data-submit>Submit</button></div>`;
+const nextRow = (label = 'Continue', attr = 'data-next') => `<div class="actions"><button type="button" class="btn box" ${attr}>${label}</button></div>`;
+const PILLARS = ['Beneficence', 'Nonmaleficence', 'Autonomy', 'Justice'];
+const chip = (name, live) => live
+  ? `<div class="box chip" tabindex="0" data-pillar="${name}" title="Drag into a box, or press Enter to move">${name}</div>`
+  : `<span class="box chip">${name}</span>`;
+
+const SCREENS = [
+  ...SCENES.map((sc, i) => ({
+    key: `scene-${i + 1}`,
+    html: () => `<section class="screen scene center">
+      <div class="art">${art(sc.label, sc.draw())}</div>
+      <div class="box text"><p>${sc.text}</p></div>
+      ${nextRow()}
+    </section>`
+  })),
+  { key: 'ready',
+    html: () => `<section class="screen center"><div class="box text ready"><p>Ready to conduct your ethical analysis?</p>${nextRow('Yes')}</div></section>` },
+  { key: 'right-vs-right',
+    html: () => `<section class="screen">
+      ${head('Right vs. Right', 'First, start by laying out the scenario in terms of a “Right vs. Right.” Look at both sides of the ethical dilemma and explain in each box what is “right” about each perspective.')}
+      <div class="with-doc"><div class="doc-side">${docArt()}</div><div class="work">
+        <div class="pair">${field('rvr-doctor', '<b>Doctor:</b> It is right to…')}${field('rvr-parents', '<b>Parents:</b> It is right to…')}</div>
+        ${submitRow}
+        <div class="reveal" hidden>
+          <div class="pair">
+            ${answer('Doctor', 'It is right to resuscitate the baby to protect his life despite the future challenges he may face.')}
+            ${answer('Parents', 'It is right to allow the baby to die, as this would prevent him from suffering and alleviate the financial burden on the family.')}
+          </div>
+          ${nextRow()}
+        </div>
+      </div></div>
+    </section>` },
+  { key: 'stakeholders',
+    html: () => `<section class="screen">
+      ${head('Stakeholders', 'Now, make a list of all potential stakeholders in this scenario.')}
+      <div class="with-doc"><div class="doc-side">${docArt()}</div><div class="work">
+        ${field('stakeholders', 'Stakeholders')}
+        ${submitRow}
+        <div class="reveal" hidden>
+          ${answer('', 'Baby, Jasmine, Jane, George, Dr. Hearth, Hospital staff, other parents of premature infants, Jane and George’s extended family, pro-life and pro-choice advocates, the hospital, other hospitals, the bank, medical community')}
+          ${nextRow()}
+        </div>
+      </div></div>
+    </section>` },
+  { key: 'hippocratic-oath',
+    html: () => `<section class="screen">
+      ${head('The Hippocratic Oath', 'How does the Hippocratic Oath apply to this dilemma? Sort each pillar of the oath based on which side you think it best supports.')}
+      <div class="sorter" id="sorter">
+        <div class="box bank" data-zone="bank"><span class="field-label">Pillars of the Hippocratic Oath</span><div class="chips">${PILLARS.map(p => chip(p, true)).join('')}</div></div>
+        <div class="pair">
+          <div class="box zone" data-zone="doctor"><span class="field-label"><b>Doctor</b></span><div class="chips"></div></div>
+          <div class="box zone" data-zone="parents"><span class="field-label"><b>Parents</b></span><div class="chips"></div></div>
+        </div>
+      </div>
+      ${submitRow}
+      <div class="reveal" hidden>
+        <div class="pair">
+          <div class="box zone answer"><span class="field-label"><span class="mine">My answer</span> · Doctor</span><div class="chips">${['Beneficence', 'Justice', 'Nonmaleficence'].map(p => chip(p)).join('')}</div></div>
+          <div class="box zone answer"><span class="field-label"><span class="mine">My answer</span> · Parents</span><div class="chips">${chip('Autonomy')}</div></div>
+        </div>
+        ${nextRow()}
+      </div>
+    </section>`,
+    init: initSorter },
+  { key: 'resolution-principles',
+    html: () => `<section class="screen">
+      ${head('Resolution Principles', 'Analyze this ethical dilemma through the lens of the three Resolution Principles.')}
+      <div class="trio">${field('rp-ends', '<b>Ends-Based</b>')}${field('rp-rules', '<b>Rules-Based</b>')}${field('rp-care', '<b>Care-Based</b>')}</div>
+      ${submitRow}
+      <div class="reveal" hidden>
+        <div class="trio">
+          ${answer('Ends-Based', 'The baby should be allowed to live. The life of the baby and its potential for future happiness despite medical challenges outweighs the financial burden on the parents, who can choose to give the baby up for adoption.')}
+          ${answer('Rules-Based', 'The baby should be allowed to live. If all babies born prematurely were allowed to die to avoid burdening the family, we would be normalizing the killing of viable babies, which would enable parents to change their minds regarding a pregnancy late in the term.')}
+          ${answer('Care-Based', 'The baby should be allowed to live. If the baby dies, the parents’ relationship with their doctor, friends, and family will be damaged, and the parents will have to carry the emotional burden of having allowed another child to be hurt. Allowing the baby to live also preserves relationships within the medical community by upholding the Hippocratic principle of non-maleficence.')}
+        </div>
+        ${nextRow()}
+      </div>
+    </section>` },
+  { key: 'stop-and-think',
+    html: () => `<section class="screen center">
+      ${head('Stop and think', 'What might the positions of each of these stakeholders be? What questions do you have?')}
+      ${nextRow()}
+    </section>` },
+  { key: 'resolution',
+    html: () => `<section class="screen">
+      ${head('Resolution', 'You have now thoroughly explored the stakeholders and implications of this ethical dilemma. Below, explain how you solved this dilemma.')}
+      ${field('resolution', 'Your resolution')}
+      ${submitRow}
+      <div class="reveal" hidden>
+        ${answer('', 'It is most ethical to allow the baby to live. The Hippocratic values of beneficence and nonmaleficence require that the doctor do everything in their power to secure the good of the baby as well as do everything to avoid hurting it. While there is a potential for medical challenges for the baby, their potential for life far outweighs this risk. Furthermore, all three resolution principles indicate that allowing the baby to live would mitigate future harm, preserve moral rules, and maintain relationships. The parents can pursue other avenues for care, including adoption, government disability subsidies, or community support.')}
+        ${nextRow('Finish', 'data-finish')}
+      </div>
+    </section>` }
+];
+
+/* ---------- Navigation ---------- */
+const app = document.getElementById('app');
+let current = 0, overlay = null, overlayKey = null;
+const saved = {};
+function saveScreen(){
+  const scr = app.querySelector('.screen');
+  if (!scr) return;
+  const st = { vals: {}, chips: {}, submitted: !!scr.querySelector('.reveal:not([hidden])') };
+  scr.querySelectorAll('textarea').forEach(ta => { st.vals[ta.id] = ta.value; });
+  scr.querySelectorAll('#sorter [data-pillar]').forEach(c => { st.chips[c.dataset.pillar] = c.closest('[data-zone]').dataset.zone; });
+  saved[SCREENS[current].key] = st;
+}
+function restoreScreen(key){
+  const st = saved[key], scr = app.querySelector('.screen');
+  if (!st) return;
+  for (const [id, v] of Object.entries(st.vals)) { const ta = scr.querySelector('#' + id); if (ta) ta.value = v; }
+  for (const [p, z] of Object.entries(st.chips)) {
+    const c = scr.querySelector(`#sorter [data-pillar="${p}"]`);
+    scr.querySelector(`#sorter [data-zone="${z}"] .chips`)?.append(c);
+  }
+  if (st.submitted) {
+    const sorter = scr.querySelector('#sorter');
+    if (sorter) sorter.dataset.locked = '1';
+    scr.querySelector('[data-submit]')?.closest('.actions').setAttribute('hidden', '');
+    scr.querySelector('.reveal')?.removeAttribute('hidden');
+  }
+}
+function go(i){
+  stopAudio(); hidePop(); clearDrag();
+  saveScreen();
+  current = i;
+  const sc = SCREENS[i];
+  app.innerHTML = sc.html();
+  app.querySelector('.reveal')?.insertAdjacentHTML('afterbegin', reasonRow(sc.key));
+  decorate(app);
+  app.scrollTop = 0;
+  sc.init?.(app);
+  restoreScreen(sc.key);
+  app.querySelector('.screen').classList.add('enter');
+  updateBack();
+}
+const backBtn = document.getElementById('back');
+function updateBack(){ backBtn.hidden = overlayKey === 'welcome' || (current === 0 && !overlayKey); }
+backBtn.addEventListener('click', () => {
+  if (overlayKey === 'finish') { closeOverlay(); return; }
+  if (current > 0) go(current - 1);
+});
+function showOverlay(html, key){
+  stopAudio();
+  overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `<div class="box card" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.append(overlay);
+  decorate(overlay);
+  overlayKey = key;
+  overlay.querySelector('button, a')?.focus();
+  updateBack();
+}
+function closeOverlay(){ stopAudio(); overlay?.remove(); overlay = null; overlayKey = null; updateBack(); }
+
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.closest('[data-next]')) { go(current + 1); return; }
+  if (t.closest('[data-close]')) { closeOverlay(); return; }
+  if (t.closest('[data-finish]')) {
+    showOverlay(`<p class="big">Congratulations! You’ve completed this MedEthics game.</p>
+      <h3>Works Cited</h3>
+      <ul class="cites">
+        <li><a href="https://my.clevelandclinic.org/health/diseases/24297-cyanosis" target="_blank" rel="noopener">https://my.clevelandclinic.org/health/diseases/24297-cyanosis</a></li>
+        <li><a href="https://medlineplus.gov/ency/article/003402.htm" target="_blank" rel="noopener">https://medlineplus.gov/ency/article/003402.htm</a></li>
+        <li><a href="https://www.stanfordchildrens.org/en/topic/default?id=the-neonatal-intensive-care-unit-nicu-90-P02389" target="_blank" rel="noopener">https://www.stanfordchildrens.org/en/topic/default?id=the-neonatal-intensive-care-unit-nicu-90-P02389</a></li>
+        <li><a href="https://my.clevelandclinic.org/health/diseases/17727-hypoxemia" target="_blank" rel="noopener">https://my.clevelandclinic.org/health/diseases/17727-hypoxemia</a></li>
+      </ul>
+      <p class="note">This game was generated using Claude, but all text is original.</p>
+      ${nextRow('Home', 'data-home')}`, 'finish');
+    return;
+  }
+  if (t.closest('[data-home]')) {
+    closeOverlay();
+    app.innerHTML = '';
+    for (const k in saved) delete saved[k];
+    go(0);
+    showWelcome();
+    return;
+  }
+  const sub = t.closest('[data-submit]');
+  if (sub) {
+    const scr = sub.closest('.screen');
+    const sorter = scr.querySelector('#sorter');
+    if (sorter) { sorter.dataset.locked = '1'; clearDrag(); }
+    sub.closest('.actions').hidden = true;
+    const rv = scr.querySelector('.reveal');
+    rv.hidden = false;
+    requestAnimationFrame(() => rv.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }));
+    return;
+  }
+  const term = t.closest('.term');
+  if (term) { showTerm(term); return; }
+  if (!t.closest('#pop')) hidePop();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hidePop(); });
+app.addEventListener('scroll', hidePop, { passive: true });
+addEventListener('resize', hidePop);
+
+/* ---------- Glossary popup ---------- */
+const pop = document.getElementById('pop'), popBody = document.getElementById('pop-body');
+let popFor = null;
+function showTerm(btn){
+  if (popFor === btn) { hidePop(); return; }
+  const [name, def] = GLOSS[btn.dataset.term];
+  popBody.innerHTML = `<b>${name}:</b> ${def}`;
+  pop.hidden = false; popFor = btn;
+  const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  let top = r.bottom + 10;
+  if (top + h > innerHeight - 16) top = Math.max(16, r.top - h - 10);
+  pop.style.left = Math.max(16, Math.min(r.left, innerWidth - w - 16)) + 'px';
+  pop.style.top = top + 'px';
+  drawBox(pop);
+}
+function hidePop(){ pop.hidden = true; popFor = null; }
+
+/* ---------- Drag and drop (mouse + touch) ---------- */
+function clearDrag(){
+  document.querySelectorAll('.ghost').forEach(g => g.remove());
+  document.querySelectorAll('.chip.placeholder').forEach(c => c.classList.remove('placeholder'));
+  document.querySelectorAll('.zone.over, .bank.over').forEach(z => z.classList.remove('over'));
+}
+function initSorter(root){
+  const sorter = root.querySelector('#sorter');
+  sorter.querySelectorAll('.chip').forEach(chipEl => {
+    chipEl.addEventListener('pointerdown', e => {
+      if (sorter.dataset.locked || e.button > 0) return;
+      e.preventDefault();
+      const r = chipEl.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+      const ghost = chipEl.cloneNode(true);
+      ghost.classList.add('ghost');
+      Object.assign(ghost.style, { width: r.width + 'px', height: r.height + 'px', left: r.left + 'px', top: r.top + 'px' });
+      clearDrag();
+      document.body.append(ghost);
+      chipEl.classList.add('placeholder');
+      const id = e.pointerId;
+      let over = null;
+      const move = ev => {
+        if (ev.pointerId !== id) return;
+        ghost.style.left = (ev.clientX - dx) + 'px';
+        ghost.style.top = (ev.clientY - dy) + 'px';
+        const z = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('#sorter [data-zone]') || null;
+        if (z !== over) { over?.classList.remove('over'); over = z; over?.classList.add('over'); }
+      };
+      const end = ev => {
+        if (ev && ev.pointerId !== undefined && ev.pointerId !== id) return;
+        removeEventListener('pointermove', move);
+        removeEventListener('pointerup', end);
+        removeEventListener('pointercancel', end);
+        removeEventListener('blur', end);
+        const target = ev && ev.type === 'pointerup' ? over : null;
+        clearDrag();
+        if (target && !sorter.dataset.locked) target.querySelector('.chips').append(chipEl);
+      };
+      addEventListener('pointermove', move);
+      addEventListener('pointerup', end);
+      addEventListener('pointercancel', end);
+      addEventListener('blur', end);
+    });
+    chipEl.addEventListener('keydown', e => {
+      if (sorter.dataset.locked || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
+      const order = ['bank', 'doctor', 'parents'];
+      const cur = chipEl.closest('[data-zone]').dataset.zone;
+      sorter.querySelector(`[data-zone="${order[(order.indexOf(cur) + 1) % 3]}"] .chips`).append(chipEl);
+      chipEl.focus();
+    });
+  });
+}
+
+/* ---------- Narration button ---------- */
+const mega = document.getElementById('mega');
+const toastEl = document.getElementById('toast'), toastBody = document.getElementById('toast-body');
+let player = null, playingBtn = null, toastTimer = 0;
+function toast(msg){
+  toastBody.textContent = msg; toastEl.hidden = false; drawBox(toastEl);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 2600);
+}
+function stopAudio(){
+  if (player) { player.pause(); player = null; }
+  playingBtn?.classList.remove('on'); playingBtn = null;
+}
+function playKey(key, btn){
+  if (player && playingBtn === btn) { stopAudio(); return; }
+  stopAudio();
+  const src = AUDIO[key];
+  if (!src) { toast('Audio for this section has not been added yet.'); return; }
+  player = new Audio(src);
+  player.onended = stopAudio;
+  playingBtn = btn; btn.classList.add('on');
+  player.play().catch(() => { stopAudio(); toast('This audio could not be played.'); });
+}
+mega.addEventListener('click', () => playKey(overlayKey || SCREENS[current].key, mega));
+document.addEventListener('click', e => { const b = e.target.closest('[data-audio]'); if (b) playKey(b.dataset.audio, b); });
+
+/* ---------- Start ---------- */
+decorate(document.body);
+function showWelcome(){
+  showOverlay(`<p>Welcome to MedEthics, an interactive game where you take on the role of a doctor and make decisions on real ethical dilemmas.</p>${nextRow('Continue', 'data-close')}`, 'welcome');
+}
+go(0);
+showWelcome();
+</script>
+</body>
+</html>
