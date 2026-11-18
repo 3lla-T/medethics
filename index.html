@@ -93,7 +93,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--hand);font-size:
 .card p{margin:0}
 .card .big{font-family:var(--head);font-size:24px;font-weight:700;line-height:1.3}
 .card h3{font-family:var(--head);font-size:20px;margin:6px 0 0}
-.cites{margin:0;padding-left:1.1em;font-size:17px;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:6px}
+.cites{margin:0;padding:0;list-style:none;font-size:17px;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:8px}
+.cites li{padding-left:1.5em;text-indent:-1.5em}
 .cites a{color:var(--ink)}
 .note{font-size:17px;color:var(--ink-soft)}
 
@@ -478,12 +479,12 @@ document.addEventListener('click', e => {
   if (t.closest('[data-close]')) { closeOverlay(); return; }
   if (t.closest('[data-finish]')) {
     showOverlay(`<p class="big">Congratulations! You’ve completed this MedEthics game.</p>
-      <h3>Works Cited</h3>
+      <h3>Bibliography</h3>
       <ul class="cites">
-        <li><a href="https://my.clevelandclinic.org/health/diseases/24297-cyanosis" target="_blank" rel="noopener">https://my.clevelandclinic.org/health/diseases/24297-cyanosis</a></li>
-        <li><a href="https://medlineplus.gov/ency/article/003402.htm" target="_blank" rel="noopener">https://medlineplus.gov/ency/article/003402.htm</a></li>
-        <li><a href="https://www.stanfordchildrens.org/en/topic/default?id=the-neonatal-intensive-care-unit-nicu-90-P02389" target="_blank" rel="noopener">https://www.stanfordchildrens.org/en/topic/default?id=the-neonatal-intensive-care-unit-nicu-90-P02389</a></li>
-        <li><a href="https://my.clevelandclinic.org/health/diseases/17727-hypoxemia" target="_blank" rel="noopener">https://my.clevelandclinic.org/health/diseases/17727-hypoxemia</a></li>
+        <li>Cleveland Clinic. “Cyanosis.” Last modified October 17, 2022. <a href="https://my.clevelandclinic.org/health/diseases/24297-cyanosis" target="_blank" rel="noopener">https://my.clevelandclinic.org/health/diseases/24297-cyanosis</a>.</li>
+        <li>———. “Hypoxemia.” Last modified April 2, 2026. <a href="https://my.clevelandclinic.org/health/diseases/17727-hypoxemia" target="_blank" rel="noopener">https://my.clevelandclinic.org/health/diseases/17727-hypoxemia</a>.</li>
+        <li>MedlinePlus. “Apgar Score.” Medical Encyclopedia. National Library of Medicine. Reviewed October 20, 2024. <a href="https://medlineplus.gov/ency/article/003402.htm" target="_blank" rel="noopener">https://medlineplus.gov/ency/article/003402.htm</a>.</li>
+        <li>Stanford Medicine Children’s Health. “The Neonatal Intensive Care Unit (NICU).” Accessed November 18, 2026. <a href="https://www.stanfordchildrens.org/en/topic/default?id=the-neonatal-intensive-care-unit-nicu-90-P02389" target="_blank" rel="noopener">https://www.stanfordchildrens.org/en/topic/default?id=the-neonatal-intensive-care-unit-nicu-90-P02389</a>.</li>
       </ul>
       <p class="note">This game was generated using Claude, but all text is original.</p>
       ${nextRow('Home', 'data-home')}`, 'finish');
